@@ -128,28 +128,33 @@ public class extract_features {
 				CSVReader reader = new CSVReader(new FileReader(fileEntry), ',' , '"' , 1);
 				ArrayList<Double> time = new ArrayList<Double>();
 				int cur_length = 0;
+				Double last_time = 0.0;
+
 				System.out.println(fileEntry);
 				while ((nextLine = reader.readNext()) != null) {
 					ArrayList<Integer> x = new ArrayList<Integer>();
 					ArrayList<Integer> y = new ArrayList<Integer>();
 					ArrayList<Integer> z = new ArrayList<Integer>();
-					Double last_time = 0.0;
 					Double cur_time = Double.parseDouble(nextLine[0]);
 					Double prev_time;
 					Double total_time = 0.0;
 					
 					//break into 2 second intervals
 					while (total_time < 2.0) {
-						nextLine = reader.readNext();
-
+						
 						if (nextLine != null) {
 							cur_time = Double.parseDouble(nextLine[0]);
 
 							time.add(Double.parseDouble(nextLine[0]));
+
+							//first time or not
 							if (total_time == 0 && cur_length == 0) {
 								prev_time = time.get(cur_length);
+
 							} else if (total_time == 0 && last_time != 0.0){
-								prev_time = last_time;	
+								prev_time = last_time;
+								if (String.valueOf(fileEntry).equals("data/Raw Data Cleaned/Harsh comb 2.csv")) {
+								}
 							}
 							else {
 								prev_time = time.get(cur_length - 1);
@@ -163,14 +168,18 @@ public class extract_features {
 							if (total_time >= 2.0) {
 								last_time = time.get(cur_length);
 							}
-
 							cur_length++;
 						} else {
 							break;
 						}
+						if (total_time < 2.0) {
+							nextLine = reader.readNext();
+						}
 					}
 					if (String.valueOf(fileEntry).equals("data/Raw Data Cleaned/Harsh comb 2.csv")) {
 						System.out.println("\nX:" + x.size() + "\n");
+						System.out.println("Time:" + time);
+						System.out.println("X:" + x);
 					}
 
 					String[] cur_features = (String.valueOf(fileEntry)
