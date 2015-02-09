@@ -130,7 +130,6 @@ public class extract_features {
 				int cur_length = 0;
 				Double last_time = 0.0;
 
-				System.out.println(fileEntry);
 				while ((nextLine = reader.readNext()) != null) {
 					ArrayList<Integer> x = new ArrayList<Integer>();
 					ArrayList<Integer> y = new ArrayList<Integer>();
@@ -153,8 +152,6 @@ public class extract_features {
 
 							} else if (total_time == 0 && last_time != 0.0){
 								prev_time = last_time;
-								if (String.valueOf(fileEntry).equals("data/Raw Data Cleaned/Harsh comb 2.csv")) {
-								}
 							}
 							else {
 								prev_time = time.get(cur_length - 1);
@@ -176,20 +173,15 @@ public class extract_features {
 							nextLine = reader.readNext();
 						}
 					}
-					if (String.valueOf(fileEntry).equals("data/Raw Data Cleaned/Harsh comb 2.csv")) {
-						System.out.println("\nX:" + x.size() + "\n");
-						System.out.println("Time:" + time);
-						System.out.println("X:" + x);
-					}
 
 					String[] cur_features = (String.valueOf(fileEntry)
 							+ "," + String.valueOf(total_time) 
 							+ "," + String.valueOf(average(x, cur_length)) 
 							+ "," + String.valueOf(average(y, cur_length))
 							+ "," + String.valueOf(average(z, cur_length))
-							+ "," + String.valueOf(num_peaks(fileEntry, x, time, cur_length))
-							+ "," + String.valueOf(num_peaks(fileEntry, y, time, cur_length))
-							+ "," + String.valueOf(num_peaks(fileEntry, z, time, cur_length))
+							+ "," + String.valueOf(num_peaks(x, time, cur_length))
+							+ "," + String.valueOf(num_peaks(y, time, cur_length))
+							+ "," + String.valueOf(num_peaks(z, time, cur_length))
 							+ "," + String.valueOf(avg_jerk(x, time, cur_length))
 							+ "," + String.valueOf(avg_jerk(y, time, cur_length))
 							+ "," + String.valueOf(avg_jerk(z, time, cur_length))
@@ -219,29 +211,16 @@ public class extract_features {
 	}
 	
 	/*Find Number of Peaks*/
-	//something's wrong with this
-	public static int num_peaks(File fileEntry, ArrayList<Integer> x, ArrayList<Double> time, int cur_length) {
+	public static int num_peaks(ArrayList<Integer> x, ArrayList<Double> time, int cur_length) {
 		int peaks = 0;
-		//if (String.valueOf(fileEntry).equals("data/Raw Data Cleaned/Harsh comb 2.csv")) {
-			//System.out.println("\nX:" + x.size() + "\n");
-			//System.out.println("Time:" + time);
-			//System.out.println("X:" + x);
-		//}
+
 		try {
 			Double prev_slope = (((double)x.get(1) - (double)x.get(0)))/(time.get(1) - time.get(0));
-			/*if (String.valueOf(fileEntry).equals("data/Raw Data Cleaned/Austin brush 1.csv")) {
-				System.out.println("X1: " + (double)x.get(1) + "\n");
-				System.out.println("X2: " + (double)x.get(0) + "\n");
-				System.out.println("T1: " + time.get(1) + "\n");
-				System.out.println("T2: " + time.get(0) + "\n");
-				System.out.println("T2: " + time.get(0) + "\n");
-			}*/
+
 			Double cur_slope;
 			for (int cnt = 1; cnt < x.size(); cnt++) {
 				cur_slope = ((x.get(cnt) - x.get(cnt-1)))/(time.get(cnt) - time.get(cnt-1));
-				/*if ((prev_slope - cur_slope)>prev_slope) {
-					peaks++;
-				}*/
+
 				if (prev_slope > 0 && cur_slope < 0) {
 					peaks++;
 				}
