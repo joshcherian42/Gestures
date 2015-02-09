@@ -219,6 +219,7 @@ public class extract_features {
 	}
 	
 	/*Find Number of Peaks*/
+	//something's wrong with this
 	public static int num_peaks(ArrayList<Integer> x, ArrayList<Double> time, int cur_length) {
 		int peaks = 0;
 		try {
