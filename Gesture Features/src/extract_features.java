@@ -138,8 +138,8 @@ public class extract_features {
 					Double prev_time;
 					Double total_time = 0.0;
 					
-					//break into 2 second intervals
-					while (total_time < 2.0) {
+					//break into 1 second intervals
+					while (total_time < 1.0) {
 						
 						if (nextLine != null) {
 							cur_time = Double.parseDouble(nextLine[0]);
@@ -162,14 +162,14 @@ public class extract_features {
 							y.add(Integer.parseInt(nextLine[2]));
 							z.add(Integer.parseInt(nextLine[3]));
 
-							if (total_time >= 2.0) {
+							if (total_time >= 1.0) {
 								last_time = time.get(cur_length);
 							}
 							cur_length++;
 						} else {
 							break;
 						}
-						if (total_time < 2.0) {
+						if (total_time < 1.0) {
 							nextLine = reader.readNext();
 						}
 					}
