@@ -1,4 +1,4 @@
-cd 'C:\Users\jcher_000\Desktop\Raw Data Cleaned\'
+cd 'Raw Data Cleaned\'
 files = dir(pwd);
 files = files(3:end);
 for a = 1:numel(files)
