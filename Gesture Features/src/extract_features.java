@@ -15,8 +15,8 @@ import com.opencsv.CSVWriter;
 public class extract_features {
 	final static File old_folder = new File("data/Raw Data");
 	final static File new_folder = new File("data/Raw Data Cleaned");
-	final static double window_size = 0.5;
-	final static double overlap_size = 0.25;
+	final static double window_size = 2;
+	final static double overlap_size = 1;
 
 	public static void main (String [] args) {
 		if (!(new_folder.exists())) {
@@ -118,11 +118,11 @@ public class extract_features {
 	@SuppressWarnings("resource")
 	public static void generate_features () {
 		try {
-			String new_path = "data/dynamic_features_" + window_size + ".csv";
+			String new_path = "data/dynamic_features_" + window_size + "_" + overlap_size + ".csv";
 			CSVWriter writer = new CSVWriter(new FileWriter(new_path));
 
 			/*Header*/
-			String[] header = "FileName, Time, Average X, Average Y, Average Z, Number of Peaks X, Number of Peaks Y, Number of Peaks Z, Average Jerk X, Average Jerk Y, Average Jerk Z, Average XY, Average XZ, Average YZ, Previous Gesture, Gesture".split(",");
+			String[] header = "FileName, Time, Number of Points, Average X, Average Y, Average Z, Number of Peaks X, Number of Peaks Y, Number of Peaks Z, Average Jerk X, Average Jerk Y, Average Jerk Z, Average XY, Average XZ, Average YZ, Previous Gesture, Gesture".split(",");
 			writer.writeNext(header);
 
 			String[] nextLine;
@@ -134,20 +134,22 @@ public class extract_features {
 					CSVReader reader = new CSVReader(new FileReader(fileEntry), ',' , '"' , 1);
 					ArrayList<Double> time = new ArrayList<Double>();
 					int cur_length = 0;
+					Double init_time = 0.0;
 					Double last_time = 0.0;
+					int shift_mult = 1;
 					System.out.println(fileEntry);
 					ArrayList<Integer> x = new ArrayList<Integer>();
 					ArrayList<Integer> y = new ArrayList<Integer>();
 					ArrayList<Integer> z = new ArrayList<Integer>();
 					ArrayList<String> gestures = new ArrayList<String>();
-					while ((nextLine = reader.readNext()) != null) {
-
-
+					nextLine = reader.readNext();
+					
+					while (nextLine != null) {
 						Double cur_time = Double.parseDouble(nextLine[0]);
 						Double prev_time;
 						Double total_time = 0.0;
-						
-						//break into 1 second intervals
+
+						//first window_size
 						while (total_time < window_size && dyn_init == 0) {
 							if (nextLine != null) {
 								cur_time = Double.parseDouble(nextLine[0]);
@@ -174,6 +176,7 @@ public class extract_features {
 
 								if (total_time >= window_size) {
 									last_time = time.get(cur_length);
+									nextLine = reader.readNext();
 								}
 								cur_length++;
 							} else {
@@ -183,39 +186,53 @@ public class extract_features {
 								nextLine = reader.readNext();
 							}
 						} //end initial second
-						if (dyn_init == 1) {
-							System.out.println(x);
 
-							time.add(Double.parseDouble(nextLine[0]));
-							x.add(Integer.parseInt(nextLine[1]));
-							y.add(Integer.parseInt(nextLine[2]));
-							z.add(Integer.parseInt(nextLine[3]));
-							gestures.add(nextLine[4]);
-							System.out.println(x);
-							/*Removes first element of array until window is correct window size or until there are only 2 elements left*/
-							while (time.size() > 2) {
-								System.out.println("Last: " + x.get(time.size() - 1));
-								System.out.println("Second: " + x.get(1));
-								/*This does what I think it does. The sampling rate just sucks.*/
-								if (time.get(time.size() - 1) - time.get(1) > window_size) {
+						if (dyn_init == 1) {
+
+							if (nextLine != null) {
+								while (time.get(0) < init_time + (overlap_size*shift_mult)) {
 									time.remove(0);
 									x.remove(0);
 									y.remove(0);
 									z.remove(0);
 									gestures.remove(0);
-									System.out.println("ninja");
-								} else {
-									System.out.println("break");
-									break;
+									if (x.size() == 0 ) {
+										time.add(Double.parseDouble(nextLine[0]));
+										x.add(Integer.parseInt(nextLine[1]));
+										y.add(Integer.parseInt(nextLine[2]));
+										z.add(Integer.parseInt(nextLine[3]));
+										gestures.add(nextLine[4]);
+										nextLine = reader.readNext();
+										while (init_time + (overlap_size*shift_mult) < cur_time) {
+											shift_mult++;
+										}
+										shift_mult--;
+										break;
+									}
 								}
+
+								while (cur_time <= init_time + (overlap_size*shift_mult) + window_size && nextLine != null) {
+									time.add(Double.parseDouble(nextLine[0]));
+									x.add(Integer.parseInt(nextLine[1]));
+									y.add(Integer.parseInt(nextLine[2]));
+									z.add(Integer.parseInt(nextLine[3]));
+									gestures.add(nextLine[4]);
+									nextLine = reader.readNext();
+									if (nextLine != null) {
+										cur_time = Double.parseDouble(nextLine[0]);
+									}
+								}
+								shift_mult++;
 							}
-							System.out.println("test");
+						} else {
+							init_time = time.get(0);
 						}
 						dyn_init = 1;
-						
+
 						cur_gesture = win_gesture(gestures);
 						String[] cur_features = (String.valueOf(fileEntry)
-								+ "," + String.valueOf(total_time) 
+								+ "," + String.valueOf(time.get(time.size() - 1) - time.get(0))
+								+ "," + String.valueOf(time.size())
 								+ "," + String.valueOf(average(x, cur_length)) 
 								+ "," + String.valueOf(average(y, cur_length))
 								+ "," + String.valueOf(average(z, cur_length))
@@ -234,10 +251,11 @@ public class extract_features {
 						writer.writeNext(cur_features);
 						total_time = 0.0;
 					}
+					dyn_init = 0;
 				}
-				break;
 			}
 			writer.close();
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -289,7 +307,6 @@ public class extract_features {
 			return jerk/cnt;
 		} else {
 			return jerk/(cnt-1);
-
 		}
 	}
 
@@ -301,7 +318,7 @@ public class extract_features {
 		}
 		return diff/cur_length;
 	}
-	
+
 	/*Find most common Gesture in window*/
 	public static String win_gesture (ArrayList<String> gestures) {
 		String gesture = "Inactive";
