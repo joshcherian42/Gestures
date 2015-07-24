@@ -118,15 +118,15 @@ public class extract_features {
 	@SuppressWarnings("resource")
 	public static void generate_features () {
 		try {
-			String new_path = "data/dynamic_features_" + window_size + "_" + overlap_size + ".csv";
+			String new_path = "data/sliding_features_" + window_size + "_" + overlap_size + ".csv";
 			CSVWriter writer = new CSVWriter(new FileWriter(new_path));
 
 			/*Header*/
-			String[] header = "FileName, Time, Number of Points, Average X, Average Y, Average Z, Number of Peaks X, Number of Peaks Y, Number of Peaks Z, Average Jerk X, Average Jerk Y, Average Jerk Z, Average XY, Average XZ, Average YZ, Previous Gesture, Gesture".split(",");
+			String[] header = "FileName, Time, Number of Points, Average X, Average Y, Average Z, Number of Peaks X, Number of Peaks Y, Number of Peaks Z, Average Jerk X, Average Jerk Y, Average Jerk Z, Average XY, Average XZ, Average YZ, Standard Deviation X, Standard Deviation Y, Standard Deviation Z, Zero-Crossings X, Zero-Crossings Y, Zero-Crossings Z, Correlation XY, Correlation XZ, Correlation YZ, Energy X, Energy Y, Energy Z, Entropy X, Entropy Y, Entropy Z, Previous Gesture, Gesture".split(",");
 			writer.writeNext(header);
 
 			String[] nextLine;
-			int dyn_init = 0;
+			int dyn_init = 0; //
 			for (File fileEntry : new_folder.listFiles()) {
 				String cur_gesture = "";
 				String prev_gesture = "Inactive";
@@ -143,7 +143,7 @@ public class extract_features {
 					ArrayList<Integer> z = new ArrayList<Integer>();
 					ArrayList<String> gestures = new ArrayList<String>();
 					nextLine = reader.readNext();
-					
+
 					while (nextLine != null) {
 						Double cur_time = Double.parseDouble(nextLine[0]);
 						Double prev_time;
@@ -245,6 +245,21 @@ public class extract_features {
 								+ "," + String.valueOf(avg_diff(x, y, cur_length))
 								+ "," + String.valueOf(avg_diff(x, z, cur_length))
 								+ "," + String.valueOf(avg_diff(y, z, cur_length))
+								+ "," + String.valueOf(stdev(x))
+								+ "," + String.valueOf(stdev(y))
+								+ "," + String.valueOf(stdev(z))
+								+ "," + String.valueOf(z_crossings(x))
+								+ "," + String.valueOf(z_crossings(y))
+								+ "," + String.valueOf(z_crossings(z))
+								+ "," + String.valueOf(sig_corr(x,y))
+								+ "," + String.valueOf(sig_corr(x,z))
+								+ "," + String.valueOf(sig_corr(y,z))
+								+ "," + String.valueOf(energy(x))
+								+ "," + String.valueOf(energy(y))
+								+ "," + String.valueOf(energy(z))
+								+ "," + String.valueOf(entropy(x))
+								+ "," + String.valueOf(entropy(y))
+								+ "," + String.valueOf(entropy(z))
 								+ "," + prev_gesture
 								+ "," + cur_gesture).split(",");
 						prev_gesture = cur_gesture;
@@ -262,6 +277,50 @@ public class extract_features {
 			e.printStackTrace();
 		}
 	}
+
+
+	/*Find most common Gesture in window*/
+	public static String win_gesture (ArrayList<String> gestures) {
+		String gesture = "Inactive";
+		HashMap<String, Integer> gestures_cnt = new HashMap<>();
+		for (int c = 0; c < gestures.size(); c++) {
+			if (gestures_cnt.containsKey(gestures.get(c))) {
+				gestures_cnt.put(gestures.get(c),gestures_cnt.get(gestures.get(c))+1);
+			} else {
+				gestures_cnt.put(gestures.get(c), 1);
+			}
+		}
+		for (String key : gestures_cnt.keySet()){
+			int max_value = 0;
+			int cur_value = gestures_cnt.get(key);
+			if (cur_value > max_value) {
+				max_value = cur_value;
+				gesture = key;
+			}
+		}
+		return gesture;
+	}
+
+
+
+	/**************************************************** 
+	 ** 					Features					**
+	 ****************************************************/
+
+	/*
+	 * Average
+	 * Number of Peaks
+	 * Average Jerk
+	 * Average Distance Between Values
+	 * Energy
+	 * Frequency-domain entropy
+	 * Zero-Crossings
+	 * Signal Correlation
+	 * Standard Deviation
+	 */
+
+
+	//Run this shit for both filtered and unfiltered data
 
 	/*Generate Average*/
 	public static Double average(ArrayList<Integer> x, int cur_length) {
@@ -319,25 +378,122 @@ public class extract_features {
 		return diff/cur_length;
 	}
 
-	/*Find most common Gesture in window*/
-	public static String win_gesture (ArrayList<String> gestures) {
-		String gesture = "Inactive";
-		HashMap<String, Integer> gestures_cnt = new HashMap<>();
-		for (int c = 0; c < gestures.size(); c++) {
-			if (gestures_cnt.containsKey(gestures.get(c))) {
-				gestures_cnt.put(gestures.get(c),gestures_cnt.get(gestures.get(c))+1);
-			} else {
-				gestures_cnt.put(gestures.get(c), 1);
+	/*Find Energy*/
+	public static Double energy(ArrayList<Integer> x) {
+		
+		int N = x.size();
+		double angle;
+		double energy = 0;
+		for (int k = 0; k < N; k++){
+			double ak = 0;
+			double bk = 0;
+			for (int i = 0; i < N; i++) {
+				angle = 2*Math.PI*i*k/N;
+				ak += x.get(i)*Math.cos(angle);
+				bk += -x.get(i)*Math.sin(angle);
 			}
-		}
-		for (String key : gestures_cnt.keySet()){
-			int max_value = 0;
-			int cur_value = gestures_cnt.get(key);
-			if (cur_value > max_value) {
-				max_value = cur_value;
-				gesture = key;
+			energy += (Math.pow(ak, 2)+Math.pow(bk, 2))/N;
+	    }
+		return energy;
+
+	}
+
+	/*Find Entropy*/
+	public static Double entropy(ArrayList<Integer> x) {
+		int N = x.size();
+		double angle;
+		double spectralentropy = 0;
+		for (int j = 0; j < N; j++){
+			double ak = 0;
+			double bk = 0;
+			double aj = 0;
+			double bj = 0;
+			double mag_j = 0;
+			double mag_k = 0;
+			double cj = 0;
+			
+			for (int i = 0; i < N; i++) {
+				angle = 2*Math.PI*i*j/N;
+				ak = x.get(i)*Math.cos(angle); //Real
+				bk = -x.get(i)*Math.sin(angle); //Imaginary
+				aj+=ak;
+				bj+=bk;
+				
+				mag_k += Math.sqrt(Math.pow(ak, 2)+Math.pow(bk, 2));
 			}
+			mag_j = Math.sqrt(Math.pow(aj, 2)+Math.pow(bj, 2));
+			
+			cj = mag_j/mag_k;
+			
+			spectralentropy += cj*Math.log(cj)/Math.log(2);
+	    }
+		return -spectralentropy;
+
+	}
+
+	/*Find Zero Crossings*/
+	public static int z_crossings(ArrayList<Integer> x) {
+		int cur_sign;
+		int prev_sign = 0; 
+		int sign;
+		int cnt = 0;
+		int crossings = 0;
+		while (prev_sign == 0 && cnt < x.size()-1) {
+			prev_sign = Long.signum((long)x.get(cnt));
+			cnt++;
 		}
-		return gesture;
+		if (prev_sign == 0) {
+			return crossings;
+		}
+		while (cnt < x.size()) {
+			cur_sign = Long.signum((long)x.get(cnt));
+			while (cur_sign == 0 && cnt < x.size()-1) {
+				cnt++;
+				cur_sign = Long.signum((long)x.get(cnt));
+			}
+			if (cur_sign == 0) { //the last value was zero, so no more crossings will occur
+				break;
+			}
+			sign = cur_sign - prev_sign;
+			switch (sign) {
+			case 2: //1-(-1)
+				crossings++;
+				break;
+			case 0: //1-(+1), -1-(-1)
+				break;
+			case -2: //-1-(+1)
+				crossings++;
+				break;
+			}
+			prev_sign = cur_sign;
+			cnt++;
+		}
+		
+		return crossings;
+
+	}
+
+
+	/*Find Signal Correlation*/
+	public static Double sig_corr(ArrayList<Integer> x, ArrayList<Integer> y) {
+		double correlation = 0;
+		int N = x.size();
+		for (int cnt = 0; cnt < N; cnt++) {
+			correlation += x.get(cnt) * y.get(cnt);
+		}
+		return correlation/N;
+
+	}
+
+	/*Find Standard Deviation*/
+	public static Double stdev(ArrayList<Integer> x) {
+		int N = x.size();
+		double avg = average(x, N);
+		double std = 0;
+		for (int i = 0; i < N; i++) {
+			std +=Math.pow((x.get(i) - avg),2);
+		}
+		return std/N;
+
 	}
 }
