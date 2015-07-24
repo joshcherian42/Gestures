@@ -13,8 +13,8 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 
 public class extract_features {
-	final static File old_folder = new File("data/Raw Data");
-	final static File new_folder = new File("data/Raw Data Cleaned");
+	final static File old_folder = new File("data/Filtered Data");
+	final static File new_folder = new File("data/Filtered Data");
 	final static double window_size = 2;
 	final static double overlap_size = 1;
 
@@ -118,7 +118,7 @@ public class extract_features {
 	@SuppressWarnings("resource")
 	public static void generate_features () {
 		try {
-			String new_path = "data/sliding_features_" + window_size + "_" + overlap_size + ".csv";
+			String new_path = "data/Filtered 27 features/sliding_features_" + window_size + "_" + overlap_size + ".csv";
 			CSVWriter writer = new CSVWriter(new FileWriter(new_path));
 
 			/*Header*/
@@ -138,9 +138,9 @@ public class extract_features {
 					Double last_time = 0.0;
 					int shift_mult = 1;
 					System.out.println(fileEntry);
-					ArrayList<Integer> x = new ArrayList<Integer>();
-					ArrayList<Integer> y = new ArrayList<Integer>();
-					ArrayList<Integer> z = new ArrayList<Integer>();
+					ArrayList<Double> x = new ArrayList<Double>();
+					ArrayList<Double> y = new ArrayList<Double>();
+					ArrayList<Double> z = new ArrayList<Double>();
 					ArrayList<String> gestures = new ArrayList<String>();
 					nextLine = reader.readNext();
 
@@ -167,10 +167,10 @@ public class extract_features {
 									prev_time = time.get(cur_length - 1);
 								}
 								total_time = total_time + (cur_time - prev_time);
-
-								x.add(Integer.parseInt(nextLine[1]));
-								y.add(Integer.parseInt(nextLine[2]));
-								z.add(Integer.parseInt(nextLine[3]));
+								
+								x.add(Double.parseDouble(nextLine[1]));
+								y.add(Double.parseDouble(nextLine[2]));
+								z.add(Double.parseDouble(nextLine[3]));
 								gestures.add(nextLine[4]);
 
 
@@ -198,9 +198,9 @@ public class extract_features {
 									gestures.remove(0);
 									if (x.size() == 0 ) {
 										time.add(Double.parseDouble(nextLine[0]));
-										x.add(Integer.parseInt(nextLine[1]));
-										y.add(Integer.parseInt(nextLine[2]));
-										z.add(Integer.parseInt(nextLine[3]));
+										x.add(Double.parseDouble(nextLine[1]));
+										y.add(Double.parseDouble(nextLine[2]));
+										z.add(Double.parseDouble(nextLine[3]));
 										gestures.add(nextLine[4]);
 										nextLine = reader.readNext();
 										while (init_time + (overlap_size*shift_mult) < cur_time) {
@@ -213,9 +213,9 @@ public class extract_features {
 
 								while (cur_time <= init_time + (overlap_size*shift_mult) + window_size && nextLine != null) {
 									time.add(Double.parseDouble(nextLine[0]));
-									x.add(Integer.parseInt(nextLine[1]));
-									y.add(Integer.parseInt(nextLine[2]));
-									z.add(Integer.parseInt(nextLine[3]));
+									x.add(Double.parseDouble(nextLine[1]));
+									y.add(Double.parseDouble(nextLine[2]));
+									z.add(Double.parseDouble(nextLine[3]));
 									gestures.add(nextLine[4]);
 									nextLine = reader.readNext();
 									if (nextLine != null) {
@@ -323,7 +323,7 @@ public class extract_features {
 	//Run this shit for both filtered and unfiltered data
 
 	/*Generate Average*/
-	public static Double average(ArrayList<Integer> x, int cur_length) {
+	public static Double average(ArrayList<Double> x, int cur_length) {
 		Double avg = 0.0;
 		for (int cnt = 0; cnt < x.size(); cnt++) {
 			avg += x.get(cnt);
@@ -332,7 +332,7 @@ public class extract_features {
 	}
 
 	/*Find Number of Peaks*/
-	public static int num_peaks(ArrayList<Integer> x, ArrayList<Double> time, int cur_length) {
+	public static int num_peaks(ArrayList<Double> x, ArrayList<Double> time, int cur_length) {
 		int peaks = 0;
 
 		try {
@@ -355,7 +355,7 @@ public class extract_features {
 	}
 
 	/*Find Average Jerk*/
-	public static Double avg_jerk(ArrayList<Integer> x, ArrayList<Double> time, int cur_length) {
+	public static Double avg_jerk(ArrayList<Double> x, ArrayList<Double> time, int cur_length) {
 		Double jerk = 0.0;
 		int cnt;
 
@@ -370,7 +370,7 @@ public class extract_features {
 	}
 
 	/*Find Average Distance Between Each Value*/
-	public static Double avg_diff(ArrayList<Integer> x, ArrayList<Integer> y, int cur_length) {
+	public static Double avg_diff(ArrayList<Double> x, ArrayList<Double> y, int cur_length) {
 		Double diff = 0.0;
 		for (int cnt = 0; cnt < x.size(); cnt++) {
 			diff += x.get(cnt) - y.get(cnt);
@@ -379,7 +379,7 @@ public class extract_features {
 	}
 
 	/*Find Energy*/
-	public static Double energy(ArrayList<Integer> x) {
+	public static Double energy(ArrayList<Double> x) {
 		
 		int N = x.size();
 		double angle;
@@ -399,7 +399,7 @@ public class extract_features {
 	}
 
 	/*Find Entropy*/
-	public static Double entropy(ArrayList<Integer> x) {
+	public static Double entropy(ArrayList<Double> x) {
 		int N = x.size();
 		double angle;
 		double spectralentropy = 0;
@@ -432,24 +432,24 @@ public class extract_features {
 	}
 
 	/*Find Zero Crossings*/
-	public static int z_crossings(ArrayList<Integer> x) {
+	public static int z_crossings(ArrayList<Double> x) {
 		int cur_sign;
 		int prev_sign = 0; 
 		int sign;
 		int cnt = 0;
 		int crossings = 0;
 		while (prev_sign == 0 && cnt < x.size()-1) {
-			prev_sign = Long.signum((long)x.get(cnt));
+			prev_sign = Long.signum(x.get(cnt).longValue());
 			cnt++;
 		}
 		if (prev_sign == 0) {
 			return crossings;
 		}
 		while (cnt < x.size()) {
-			cur_sign = Long.signum((long)x.get(cnt));
+			cur_sign = Long.signum(x.get(cnt).longValue());
 			while (cur_sign == 0 && cnt < x.size()-1) {
 				cnt++;
-				cur_sign = Long.signum((long)x.get(cnt));
+				cur_sign = Long.signum(x.get(cnt).longValue());
 			}
 			if (cur_sign == 0) { //the last value was zero, so no more crossings will occur
 				break;
@@ -475,7 +475,7 @@ public class extract_features {
 
 
 	/*Find Signal Correlation*/
-	public static Double sig_corr(ArrayList<Integer> x, ArrayList<Integer> y) {
+	public static Double sig_corr(ArrayList<Double> x, ArrayList<Double> y) {
 		double correlation = 0;
 		int N = x.size();
 		for (int cnt = 0; cnt < N; cnt++) {
@@ -486,7 +486,7 @@ public class extract_features {
 	}
 
 	/*Find Standard Deviation*/
-	public static Double stdev(ArrayList<Integer> x) {
+	public static Double stdev(ArrayList<Double> x) {
 		int N = x.size();
 		double avg = average(x, N);
 		double std = 0;
