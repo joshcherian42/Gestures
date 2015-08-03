@@ -13,8 +13,8 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 
 public class extract_features {
-	final static File old_folder = new File("data/Filtered Data");
-	final static File new_folder = new File("data/Filtered Data");
+	final static File old_folder = new File("data/Testing");
+	final static File new_folder = new File("data/Testing");
 	final static double window_size = 2;
 	final static double overlap_size = 1;
 
@@ -118,11 +118,11 @@ public class extract_features {
 	@SuppressWarnings("resource")
 	public static void generate_features () {
 		try {
-			String new_path = "data/Filtered 27 features/sliding_features_" + window_size + "_" + overlap_size + ".csv";
+			String new_path = "data/Testing/sliding_features_" + window_size + "_testing_" + overlap_size + ".csv";
 			CSVWriter writer = new CSVWriter(new FileWriter(new_path));
 
 			/*Header*/
-			String[] header = "FileName, Time, Number of Points, Average X, Average Y, Average Z, Number of Peaks X, Number of Peaks Y, Number of Peaks Z, Average Jerk X, Average Jerk Y, Average Jerk Z, Average XY, Average XZ, Average YZ, Standard Deviation X, Standard Deviation Y, Standard Deviation Z, Zero-Crossings X, Zero-Crossings Y, Zero-Crossings Z, Correlation XY, Correlation XZ, Correlation YZ, Energy X, Energy Y, Energy Z, Entropy X, Entropy Y, Entropy Z, Previous Gesture, Gesture".split(",");
+			String[] header = "FileName, Time, Number of Points, Average X, Average Y, Average Z, Number of Peaks X, Number of Peaks Y, Number of Peaks Z, Average Jerk X, Average Jerk Y, Average Jerk Z, Average XY, Average XZ, Average YZ, Standard Deviation X, Standard Deviation Y, Standard Deviation Z, Zero-Crossings X, Zero-Crossings Y, Zero-Crossings Z, Correlation XY, Correlation XZ, Correlation YZ, Energy X, Energy Y, Energy Z, Entropy X, Entropy Y, Entropy Z".split(",");
 			writer.writeNext(header);
 
 			String[] nextLine;
@@ -141,7 +141,7 @@ public class extract_features {
 					ArrayList<Double> x = new ArrayList<Double>();
 					ArrayList<Double> y = new ArrayList<Double>();
 					ArrayList<Double> z = new ArrayList<Double>();
-					ArrayList<String> gestures = new ArrayList<String>();
+					//ArrayList<String> gestures = new ArrayList<String>();
 					nextLine = reader.readNext();
 
 					while (nextLine != null) {
@@ -171,7 +171,7 @@ public class extract_features {
 								x.add(Double.parseDouble(nextLine[1]));
 								y.add(Double.parseDouble(nextLine[2]));
 								z.add(Double.parseDouble(nextLine[3]));
-								gestures.add(nextLine[4]);
+								//gestures.add(nextLine[4]);
 
 
 								if (total_time >= window_size) {
@@ -195,13 +195,13 @@ public class extract_features {
 									x.remove(0);
 									y.remove(0);
 									z.remove(0);
-									gestures.remove(0);
+									//gestures.remove(0);
 									if (x.size() == 0 ) {
 										time.add(Double.parseDouble(nextLine[0]));
 										x.add(Double.parseDouble(nextLine[1]));
 										y.add(Double.parseDouble(nextLine[2]));
 										z.add(Double.parseDouble(nextLine[3]));
-										gestures.add(nextLine[4]);
+										//gestures.add(nextLine[4]);
 										nextLine = reader.readNext();
 										while (init_time + (overlap_size*shift_mult) < cur_time) {
 											shift_mult++;
@@ -216,7 +216,7 @@ public class extract_features {
 									x.add(Double.parseDouble(nextLine[1]));
 									y.add(Double.parseDouble(nextLine[2]));
 									z.add(Double.parseDouble(nextLine[3]));
-									gestures.add(nextLine[4]);
+									//gestures.add(nextLine[4]);
 									nextLine = reader.readNext();
 									if (nextLine != null) {
 										cur_time = Double.parseDouble(nextLine[0]);
@@ -229,7 +229,7 @@ public class extract_features {
 						}
 						dyn_init = 1;
 
-						cur_gesture = win_gesture(gestures);
+						//cur_gesture = win_gesture(gestures);
 						String[] cur_features = (String.valueOf(fileEntry)
 								+ "," + String.valueOf(time.get(time.size() - 1) - time.get(0))
 								+ "," + String.valueOf(time.size())
@@ -259,10 +259,10 @@ public class extract_features {
 								+ "," + String.valueOf(energy(z))
 								+ "," + String.valueOf(entropy(x))
 								+ "," + String.valueOf(entropy(y))
-								+ "," + String.valueOf(entropy(z))
-								+ "," + prev_gesture
-								+ "," + cur_gesture).split(",");
-						prev_gesture = cur_gesture;
+								+ "," + String.valueOf(entropy(z))).split(",");
+								//+ "," + prev_gesture
+								//+ "," + cur_gesture).split(",");
+						//prev_gesture = cur_gesture;
 						writer.writeNext(cur_features);
 						total_time = 0.0;
 					}
